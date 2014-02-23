@@ -1,0 +1,451 @@
+# Chapter3
+```{r eval=FALSE, echo=FALSE, include=FALSE}
+#ワーキングディレクトリ設定
+setwd("r_dataprogramming/")
+```
+
+## if
+```{r}
+x <- 8
+if (x < 5) print("yes!") else print("no!")
+
+#elseを行頭におけないので, {}なしで複数業はダメ
+#if (x >= 5)
+#  "yes!"
+#else
+#  "no!"
+if (x >= 5) {
+  "yes!"
+} else {
+  "no!"
+}
+
+x <- 11
+if (x <= 5) {
+  "5よりしたー"
+} else if (x <= 10) {
+  "5よりうえで10よりしたー"
+} else {
+  "10よりうえー"
+}
+
+```
+
+#ifelse
+```{r}
+#ベクトルを使った場合
+#最初の1つだけが評価される
+x <- 1:10
+if (x < 5) print("x < 5") else print("x >= 5")
+
+#個々の要素ごとに判定する
+ifelse(x > 5, "yes", "no")
+
+#ifelse関数はすべての要素にたいして一度処理を実行(yes, no表示がすべての値で出力されてる)
+#条件に当てはまるものだけを返す
+#また、printの戻り値(表示)は変数に代入できる
+y <- ifelse(x >5, {cat("yes"); print(x / 10)}, {cat("no"); print(x * 10)})
+y
+
+#補足：
+# cat : 文字列のみ引用府なし。改行も\nを入れる必要がある
+# print : オブジェクトの中身も表示。改行・引用府あり
+cat("test"); cat(iris) #cat(iris)はエラー
+print("test"); print(iris)
+```
+
+## switch
+```{r}
+x <- 2
+y <- 3
+z <- "*"
+#式が一つだけのときは{}省略可
+#defaultはどこにでもおける
+switch(z,
+       "+" = {print("+: 足し算"); x + y},
+       "-" = {print("-: 引き算"); x - y},
+       "*" = {print("*: かけ算"); x * y},
+       "/" = {print("/: 割り算"); x / y},
+       "ほかの演算はムリポ")
+```
+
+## for
+```{r}
+#ベクトル要素すべてにループ
+for (i in 1:5) {
+  #catは表示するものを複数指定できる(スペース区切りで表示)
+  cat("counter:",i, "\n")
+}
+
+#ベクトルなら数値じゃなくてもいい
+for (i in c("John", "Smith")) {
+  print(i)
+}
+
+#sumのまねごと
+x <- 1:100
+j <- 0
+for (i in x) {
+  j <- i + j
+}
+j
+
+#nextは次の値に進むよ
+for (i in 1:10) {
+  if (i == 5) next
+  print(i)
+}
+```
+
+## while
+```{r}
+i <- 0
+while (i < 100) {
+  i <- i + 1
+  if (i %% 10 != 0) next
+  if (i %% 90 == 0) {
+    cat("\n")
+    break
+  }
+  cat(i, "\t")
+}
+```
+
+# サンプル
+```{r}
+#サイコロ100個の剛健を1000回求めて平均をだす
+
+set.seed(1) #seedを設定して毎回同じ値が出るようにする
+x <- 1:6
+res <- numeric(1000) #効率化のためあらかじめメモリを確保しておく
+for (i in 1:1000) {
+  res[i] <- sum(sample(x, 100, rep = T))
+}
+mean(res)
+
+#乱数生成
+#0から1の値までの実数を引数個生成
+runif(10)
+
+#期待値
+x <- 1:6; (1 / 6) * sum(x)
+#平均(大数の法則によりサンプルすう多い方が期待値に近くなりやすい)
+mean(sample(x, 100000, rep = T))
+```
+
+## 関数
+```{r}
+#関数定義
+func.first <- function() {
+  print("test function")
+}
+#定義確認
+func.first
+#呼び出し
+func.first()
+
+#引数
+func.plus <- function(x = 0, y = 1) {
+  x + y
+}
+func.plus()
+func.plus(y = 2)
+#関数の外と中では変数のスコープ違うよ
+(x <- func.plus(2,5))
+
+dice <- function(face = 6, toss = 1) {
+  #引数が不正な場合エラー処理をする
+  if (face < 2 || toss <1) stop("argments error")
+  
+  #条件を満たしていない場合はエラー
+  #不正な値を出力してくれる
+  #stopifnot(face > 1, toss > 0) 
+  sample(x = 1:face, size = toss, rep = T)
+}
+dice()
+dice(6, 10)
+#引数が不正なのでエラー
+#dice(1, 10);
+#dice(6, 0)
+
+```
+
+## ベクトル演算
+```{r}
+x <- 1:10
+sum(x) #合計
+mean(x) #平均
+
+(x <- matrix(1:9, nrow = 3))
+rowSums(x) #行ごとのsum
+colSums(x) #列ごとのsum
+
+#行列演算
+#第2引数が1で行単位、2で列単位
+apply(x, 1, sum)
+apply(x, 2, sum)
+
+#引数でいろいろ
+apply(x, 1, "+", 100)
+apply(x, 2, paste, "!", sep = "")
+
+apply(x, 2, function(z){cat(z[1], "\t", z[2], "\t", z[3], "\n")})
+
+y <- data.frame(x)
+names(y) <- c("hoge", "fuga", "piyo")
+#リストで返す
+lapply(y, function(z) {str(z); z})
+lapply(x, function(z) {str(z); z}) #matrixの場合は全要素個別に処理？
+
+#simple
+sapply(y, sum)
+
+xx <- list(x1 = x, x2 = x * 10)
+xx
+lapply(xx, mean)
+sapply(xx, mean)
+
+#補足 : vaplly, mapply, tapllyなどなり
+```
+
+## クラス
+```{r}
+#S3クラス、S4クラス、参照クラス
+class(iris)
+
+# generic function
+#「.」以降のクラス名が実際に使用されるメソッド(lmの結果ならprint.lmなど)
+methods(print)
+
+# methodsの結果で「*」がついてるものはそのままでは実装を見れない
+getS3method(f = "plot", class = "histogram")
+getAnywhere("plot.histogram"); argsAnywhere("plot.histogram")
+```
+
+## S3クラス
+```{r}
+#ただの文字列
+x <- "A"
+print(x)
+
+#独自メソッドの定義
+print.str <- function(x) {
+  cat("x = ", x, ": charToRaw(x) = ", charToRaw(x), "\n")
+}
+#オブジェクトxのクラスをstrに設定
+class(x) <- "str"
+#printでprint.strが呼び出される
+print(x)
+```
+
+## S4クラス
+```{r}
+#setClassでクラス定義
+setClass(Class = "family", #クラス名
+         #スロット(フィールド)
+         representation(mother = "character",
+                        father = "character",
+                        children = "numeric"),
+         #デフォルト値
+         prototype(mother = "母",
+                   father = "父",
+                   children = 0))
+#インスタンス生成
+fm1 <- new("family", mother = "John", father = "Smith")
+fm1
+# @(or slot関数)でスロット使用
+fm1@father             #参照
+fm1@father <- "Smith2" #代入
+
+#メソッド定義確認
+getGeneric("show")
+#メソッド定義
+setMethod(f = "show", #printに相当するメソッド
+          signature = "family",
+          function(object) {
+            cat(object@father, object@mother, "\n")
+          })
+show(fm1)
+fm1 #通常表示にもshowメソッドが使用される
+
+#validation
+#newする際に呼ばれる
+setValidity("family",
+            function(object) {
+              if (nchar(object@mother) < 1 || nchar(object@father) < 1) {
+                return (FALSE)
+              }
+            })
+
+#validation error
+#fm2 <- new("family", mother = "", father = "", children = 3)
+```
+
+## 九九表
+```{r}
+A1 <- 1:9
+A2 <- 1:9
+A1 * A2 #同じ位置の要素同士のかけ算になってしまう
+A1 %*% t(A2) #ベクトル・行列演算
+as.matrix(A1) %*% t(A2) #明示的に行列に変換してもおk(tで転地した段階でmatrixになってる)
+outer(A1, A1, "*") #outerで結合してもよい
+paste(outer(A1, A1, paste, sep = " * "), outer(A1, A1), sep = " = ")
+```
+
+## 出力オプション
+```{r}
+options()
+getOption("width") #個別に確認
+#options(width=109) #変更
+```
+
+## 連番
+```{r}
+x <- c("スミス", "ジョースター", "ジャクソン", "初音", "高橋")
+y <- c(100, 90, 70, 120, 10)
+xy <- data.frame(Name = x, Score= y)
+xy
+#idをつける
+xy$ID <- paste("student", 1:5, sep="-")
+xy
+names(xy)
+
+xy2 <- xy[, c("ID", "Score")]
+xy2
+
+xy$Sex <- c("F", "M", "M", "F", "?")
+xy
+
+xy$ID <- paste(xy[, "Sex"], 1:5, sep="-")
+xy
+```
+
+## 組み合わせ
+```{r}
+#カップリング
+female <- c("初音ミク", "鏡音リン", "巡音ルカ")
+male <- c("John", "Smith", "じょんすみす")
+paste(sample(female, 3), sample(male, 3), sep=" x ")
+
+#トランプ
+mark <- c("H", "C", "D", "S")
+suji <- c("A", 2:10, "J", "Q", "K")
+cards <- outer(mark, suji, paste, sep = "-")
+cards <- c(cards, "Joker")
+cards
+length(cards)
+#カードを引く
+sample(cards, 5)
+```
+
+
+## 文字列操作
+```{r}
+index <- "A CERTAIN MAGICAL INDEX"
+x <- c("ABC", "efghi")
+
+length(index) #vectorとしての長さ
+length(x)
+
+nchar(index) #文字数
+nchar(x)
+
+tolower(index)
+toupper(x)
+
+alice <- c("Alice was beginning to get very tired of sitting by her sister on the bank",
+           "and of having nothing to do:")
+length(alice)
+nchar(alice)
+strsplit(alice, " ")
+alice2 <- unlist(strsplit(alice, " ")) #unlistでまとめて一つのvectorにする
+alice2
+length(alice2)
+
+table(alice2) #要素ごとの出現回数を取得
+#data frameに変換
+#namesの単語がオブジェクト名、出現回数がFreqになってる
+as.data.frame(table(alice2))
+
+#web上のデータを読み込み
+alice.file <-file("http://www.gutenberg.org/files/11/11.txt")
+alice3 <- readLines(alice.file)
+close(alice.file)
+
+head(alice3, 50) #本文開始位置を調べる
+grep("THE END", alice3) #THE ENDが本文の最後
+alice3[3365:3375] #最後の前後を取得
+alice3 <- alice3[41:3370] #本文のみを取得
+head(alice3); tail(alice3)
+
+#スペースと区切り文字で分割してvector化
+alice.vec <- unlist(strsplit(alice3, split = "[[:space:]]+|[[:punct:]]+"))
+length(alice.vec)
+
+#正規表現置換
+gsub("[0-9]", "x", "今日は12/24ではありません。そんな日はありません。")
+
+head(alice.vec)
+sum(alice.vec == "")
+alice.vec <- alice.vec[alice.vec != ""]
+length(alice.vec)
+#出現頻度の高い「the」の数をカウントする
+sum(alice.vec == "the")
+
+alice.freq <- as.data.frame(table(alice.vec))
+#order関数はソートした結果そのものでは無く、ソート後のIDのvectorを返す
+#なので、添字として使うことでソート後の実際の値を取得できる
+#引数を複数指定することで複数列でのソートも可能
+alice.sort <- alice.freq[order(alice.freq$Freq, decreasing = T), ]
+head(alice.sort)
+nrow(alice.sort)
+
+#補足：sort関数を使ってvestorをそのまま並び替え
+x <- c(3, 1, 2, 5, 4)
+sort(x)
+x[order(x)] #orderで同じことをする
+
+alice.sort2 <- alice.freq[order(alice.freq$alice.vec), ]
+head(alice.sort2)
+alice.sort2[grep("swim", alice.sort2$alice.vec), ]
+
+#Snowball
+library(Snowball)
+alice.sn <- SnowballStemmer(tolower(alice.vec))
+alice.sn.freq <- as.data.frame(table(alice.sn))
+alice.sn.sort <- alice.sn.freq[order(alice.sn.freq$alice.sn), ]
+head(alice.sn.sort)
+
+#何かの単語が空白にステミングされてるので原因を調べる
+sum(alice.sn.sort$Freq)
+sum(alice.sort$Freq)
+which(alice.sn == "")
+alice.sn[610:620]
+alice.vec[610:620]
+grep("that's", alice3, value = T)
+nrow(alice.sn.sort)
+```
+
+## 日本語
+必要なデータのダウンロード
+```
+$ wget http://web.ias.tokushima-u.ac.jp/linguistik/RMeCab/data.tar.gz
+```
+```{r}
+library(RMeCab)
+unlist(RMeCabC("ご飯を食べた", 1))
+
+#文字ごとのfrequencyを取得する非公開メソッド
+dazai <- docDF("data/merosu.txt")
+head(dazai); tail(dazai)
+
+#type=1で形態素ごと
+dazai <- docDF("data/merosu.txt", type = 1)
+head(dazai); tail(dazai)
+
+#名詞と形容詞だけ取り出す
+nrow(dazai[(dazai$POS1 %in% c("名詞", "形容詞")), ]) # %in%でvector内のorで指定
+#データ取得時に選ぶこともできる
+dazai <- docDF("r_dataprogramming/data/merosu.txt", type = 1, pos = c("名詞", "形容詞"))
+head(dazai[order(dazai$merosu.txt, decreasing=T), ], 10)
+```

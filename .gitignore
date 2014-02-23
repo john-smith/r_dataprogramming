@@ -1,0 +1,10 @@
+*.html
+*.md
+*.pdf
+*.png
+.Rproj.user
+.RData
+.Rhistory
+figure
+
+!README.md

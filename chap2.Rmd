@@ -1,0 +1,225 @@
+# Chapter2
+```{r eval=FALSE, echo=FALSE, include=FALSE}
+#ワーキングディレクトリ設定
+setwd("r_dataprogramming/")
+```
+
+## 四則演算
+```{r}
+1 + 1
+2 - 2
+3 * 3
+4 / 4
+```
+
+## ベクトルと改行
+```{r}
+1:10
+c(1, 3, 8) + 1
+1 + 2 + 3 +
+  4 + 5 + 6
+```
+
+## 変数
+```{r}
+x <- c(1.0, 1.2, 1.3)
+x
+x * 10
+x
+y <- "John Smith"
+```
+
+## ベクトルの表示上の改行
+```{r}
+LETTERS
+letters
+```
+
+## 配列の添字
+```{r}
+LETTERS[1:5]
+LETTERS[c(1, 3, 5, 20:26)]
+LETTERS[-(1:23)]
+```
+
+## names
+```{r}
+dogs <- c("モモ", "チョコ", "マロン", "ナナ")
+names(dogs) <- c("チワワ", "コーギ", "柴犬", "コーギ")
+dogs
+dogs["コーギ"] #namesに同じ項目があるため最初のものしか表示されない
+```
+
+## 関数
+```{r}
+x <- 1:100
+sum(x)
+mean(x)
+
+y <- 1:3
+rep(y, 3)
+
+z <- c("A", "B", "C")
+rep(z, 5)
+
+seq(10)
+seq(from = 0, to = 10, by = 2)
+seq(0, 10 ,3)
+seq(0, 1, 0.1)
+```
+
+## ヘルプ
+```{r}
+help.search("sequence")
+?seq
+```
+
+## 関数の応用
+```{r}
+x <- 1:6
+sample(x, 1)
+#非復元抽出なのでエラー
+#sample(x, 10)
+#rep=Tで復元抽出にする
+sample(x, 10, rep = T)
+
+kuji <- c("大吉", "中吉", "小吉")
+kuji
+sample(kuji, 1)
+#probで出現確率を設定
+sample(kuji, 1, prob = c(1 / 10, 2 / 10, 7 / 10))
+
+kuji.result <- sample(kuji, 10000, rep = T, prob = c(1 / 10, 2 / 10, 7 / 10))
+kuji.result.table <- table(kuji.result)
+kuji.result.table
+barplot(kuji.result.table)
+```
+
+## 型
+```{r}
+#実数
+(x <- 1)
+typeof(x)
+#整数
+(y <- 1L)
+typeof(y)
+#複素数
+(z <- 1 + 2i)
+typeof(z)
+
+#文字列
+(x <- "ほげ")
+(y <- "fuga")
+
+#文字列結合
+paste(LETTERS, collapse="")
+
+#split
+strsplit(x, "")
+
+#factor(因子)
+x <- c("男", "女")
+class(x)
+x.factor <- as.factor(x)
+x.factor
+class(x.factor)
+str(x.factor)
+
+# 論理値
+x <- 5
+x >=3
+
+x <- 1:5
+x <= 3; x < 3; x > 3; x == 3; x != 3
+# trueを1としてカウント
+sum(x >= 3)
+
+y <- c("A", "B", "C")
+y == "B"
+
+z <- c("A", "B", "O", "AB", "A", "B", "O", "AB")
+# ベクトル同士の比較は足りな分はリピートされる
+#以下はz == c("AB", "B", "AB", "B", "AB", "B", "AB", "B")と同等
+z == c("AB", "B")
+# 比較対象に含まれいるかは %in% を使って比較
+z %in% c("AB", "B")
+sum(z %in% c("AB", "B")) #一致する数
+which(z %in% c("AB", "B")) #一致する位置
+
+# namesに該当する場合が複数ある場合
+dogs[names(dogs) %in% "コーギ"]
+dogs[names(dogs) %in% "コーギ"][2] #添字で各要素を取得
+```
+
+## データフレーム
+```{r}
+#睡眠薬の効果
+# extra:効果(時間), group:1 or 2, ID: userID
+head(sleep)
+summary(sleep)
+
+# データフレーム作成
+x <- data.frame(Num = 1:5, Cha = LETTERS[1:5])
+x; x$Num; x$Cha
+str(x); summary(x)
+
+#stringsAsFactorsをfalseにすることで文字列をfactorにしない
+y <- data.frame(Num = 1:5, Cha = letters[1:5], stringsAsFactors=F)
+y; y$Num; y$Cha
+str(y); summary(y)
+
+#列の追加(数が一致している必要がある)
+#新たに追加文字列はfactorにはならない
+x$New <- c("あ", "い", "う", "え", "お")
+nrow(x) #行数
+ncol(x) #列数
+x; str(x)
+
+#行番号、列番号の順で要素を指定して取得
+x[1:3, c(1, 3)]
+x[1:3, -2] #特定列だけ除く
+```
+
+## matrix(行列)
+```{r}
+#行列は数値以外も使えるがすべての要素が同じ型じゃないとダメ
+#列 -> 行の順で要素を指定
+(x <- matrix(1:9, ncol=3)) #matrix(1:9, ncol=3, nrow=3)の省略形
+#行 -> 列の順で要素を指定
+(y <- matrix(1:9, ncol=3, byrow=T))
+#要素が足りない場合は先頭から順に繰り返し()警告が出る
+(z <- matrix(c(2, 5 ,7), nrow=2))
+
+x; t(x) #転置
+```
+
+## array(配列)
+```{r}
+#多次元のデータ構造
+HairEyeColor
+
+#要素を指定して取得
+HairEyeColor[, , Sex="Female"] 
+HairEyeColor["Black", ,]
+
+Titanic #4次元のデータ
+```
+
+## list
+```{r}
+#複数の構造のデータを混在させる
+#回帰分析の結果
+x <- lm(dist ~ speed, cars)
+str(x) #リストの要素は[]ではなく[[]]
+x$coefficients
+
+str(x[[1]])
+x[[1]][1] #リスト内の個別の項目を取り出す
+x$coefficients[1] #名前があればオブジェクト名で取り出しも可
+
+#型を確認
+#ここに記載していないほかの型でもできる
+is.list(x) #list
+is.vector(letters) #ベクトル
+is.data.frame(iris) #データフレーム
+```

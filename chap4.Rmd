@@ -1,0 +1,317 @@
+# Chapter4
+```{r eval=FALSE, echo=FALSE, include=FALSE}
+#ワーキングディレクトリ設定
+setwd("r_dataprogramming/")
+```
+
+## plot関数
+### グラフの領域について
+基本的には自動でやってくれるが自分で調整も可能
+
+```{r echo=FALSE}
+par(oma = rep(3, 4), bg = "gray")
+plot(c(0, 1), c(0, 1), type="n", ann = FALSE, axes = FALSE)
+par(xpd = TRUE) # 作図領域に加工を加える
+# 作図領域を黄色に塗る
+rect(par()$usr[1] - par()$mai[2], par()$usr[3] - par()$mai[1],
+par()$usr[2] + par()$mai[4], par()$usr[4] + par()$mai[3],
+col = "yellow", border = NA)
+box("figure") # 作図領域全体を黒枠で囲む
+par(xpd = FALSE) # 描画の対象をプロット領域に戻す
+# プロット領域を白く塗りつぶす
+rect(par()$usr[1], par()$usr[3],
+par()$usr[2], par()$usr[4],
+col = "white", border = NA)
+box("plot", lty = "dashed", col = "green") # プロット領域を囲む
+text(.5, .5, "plot region", cex = 1.8)
+# 四つの内部マージンに描画
+mtext("figure region", side = 3, line = 2, adj = 1, cex = 1.8)
+# line = 2 は内部マージン上(side=3) の 2 行目の高さに描くことを指定
+# adj は 0 なら左端，1 なら右端に描画．
+for (i in 1:4)
+mtext(paste("inner margin", i), side = i, cex = 1.4,
+las = 0, line = 1, outer = FALSE)
+# 四つの外部マージンに描画# outer = TRUE
+for (i in 1:4)
+mtext(paste("outer margin", i), side = i, cex = 1.4,
+las = 0, line = 1, outer = TRUE)
+# 外部マージンにラベルを付ける
+mtext("device region", side=3, line=2, adj = 1, outer = TRUE,cex = 1.8)
+# 最後にプロット全体を赤い枠で囲む
+box("outer", col = "red", lwd = 3)
+```
+
+#### プロット領域
+plot region  
+データを実際に描画する
+
+#### 描画領域
+figure region   
+軸メモリや軸ラベルなど  
+
+#### デバイス領域
+device region  
+テキストなどを描画しておくのに使える
+
+## 高水準グラフィックス関数
+全体をひとまとめで出してくれる
+```{r}
+#plotする
+plot(1:10)
+
+#文字、色など指定
+#pch : プロット記号の形状(デフォルトは白丸. 文字の指定も可)
+#cex : プロット記号のサイズ(デフォルトに対する倍率で指定)
+#col : プロット記号の色(色番号で指定可)
+#要素数が足りない分はリサイクル(1番目から繰り返す)をする
+plot(1:10, pch=letters[1:10], col = 1:8, cex = 1:10)
+
+#色名で指定
+plot(1:10, col = c("red", "blue"))
+
+#リサイクル
+(x <- rep(10, 10))
+x / c(2, 5) # x[1]/2, x[2]/5, x[3]/2 ...
+x / c(2, 5, 3) #割り切れない場合は警告
+```
+
+## 低水準グラフィック関数
+一部の領域だけをプロットする
+```{r}
+#type="n"でプロット自体は表示しない
+plot(1:10, type = "n")
+#グラフ上にプロットを表示する
+text(1:10, LETTERS[1:10], col = 1:10, cex = 1:10)
+```
+
+## manipulate
+RStudioの対話的プロット用パッケージ  
+plots領域左上の歯車から設定できるようになる  
+```{r eval=FALSE}
+#knitrでは表示できないようなのでeval=FALSEに設定
+library(manipulate)
+#プルダウンでプロットの色を指定する
+manipulate(plot(1:10, col = myColors), myColors = picker("red", "green", "blue"))
+
+#dist~speedのグラフ
+head(cars)
+manipulate(
+  plot(cars, xlim = c(x.min, x.max), type = type, axes = axes, ann = label),
+  x.min = slider(0, 15), #x軸の最小値
+  x.max = slider(15, 30, initial = 25), #x軸の最大値
+  type = picker("p", "l", "b", "c", "o", "h", "s", "S", "n"), #プロットの種類(点、線など)
+  axes = checkbox(T, "Draw Axes"), #軸の表示
+  label = checkbox(F, "Draw Labels")) # ラベルの表示
+```
+
+## 高水準グラフィックス詳細
+```{r warning=FALSE }
+#type="h"で棒グラフ(histgram)
+plot(cars, type="h")
+?plot #typeの詳細はヘルプで確認できる
+
+plot(cars) #typeが指定されていない場合のデフォルトは散布図
+cars2 <- cars
+cars2$speed2 <- cars$speed * 1.6 #速度をmph->km/hに変換
+cars2$dist2 <- cars$dist * 0.3 #距離をft->mに変換
+#cars2 <- transform(cars, speed2 = speed * 1.6, dist2 = dist * 0.3) #trancformでも同じことができる
+
+head(cars2)
+plot(dist2 ~ speed2, #目的変数~説明変数
+     data = cars2, 
+     main = "速度と停止距離の関係", #上部のメインタイトル
+     sub = "dataset::carsの変数を変換", #下部のサブタイトル
+     xlab = " 速度(km/h)", #x軸のラベル
+     ylab = "距離(m)") #y軸のラベル
+```
+
+knitrで使えないためeval=FALS
+```{r eval=FALSE}
+identify(cars2[, c("speed2", "dist2")]) #マウス操作でクリックしたデータに番号を表示させる
+text(locator(1), "トヨタ") #クリックしてデータ名をつける(vectorでまとめて指定可能)
+```
+
+```{r}
+#irisの品種ごとに色を変えたグラフ
+plot(Petal.Width ~ Petal.Length,
+     pch = c(Species),
+     col = Species,
+     las = 1,
+     cex = 1.8,
+     data = iris,
+     xlab = "花びらの長さ(cm)",
+     ylab = "花びらの幅(cm)")
+```
+
+knitrで使えないためeval=FALS
+```{r eval=FALSE}
+#凡例追加
+legend(locator(1), legend = levels(iris$Species), pch = 1:3, text.col = 1:3, cex = 1:8)
+```
+
+# lattice
+```{r}
+library(lattice)
+xyplot(Sepal.Width ~ Sepal.Length, group = Species, data = iris)
+```
+
+```{r eval=FALSE}
+#pdfに出力
+#png, jpeg. bmp, postscriptなどがほかにもある
+pdf(file = "iris.pdf")
+xyplot(Sepal.Width ~ Sepal.Length, group = Species, data = iris)
+dev.off()
+```
+
+## ggplot2
+```{r}
+library(ggplot2)
+p <- ggplot(iris, aes(Sepal.Width, Sepal.Length))
+p2 <- p + geom_point(aes(color = Species))
+print(p2)
+```
+
+## 棒グラフ
+```{r}
+?VADeaths #データ確認
+nrow(VADeaths); ncol(VADeaths)
+rownames(VADeaths); colnames(VADeaths)
+VADeaths
+
+barplot(VADeaths)
+#詳細設定
+barplot(VADeaths, 
+        beside=T, #T:項目ごと, F:積み上げ
+        col = c("lightblue", "mistyrose", "lightcyan", "lavender", "cornsilk"), #色の設定
+        legend = rownames(VADeaths), #凡例
+        ylim = c(0, 100))
+#font.mainの設定
+#  1 : ローマン
+#  2 : ボールド
+#  3 : イタリック
+#  4 : ボールド・イタリック
+title(main = "VD Deaths", font.main = 4) #title設定
+
+#latticeを使って描画
+library(lattice)
+#デフォルトでは行単位(世代)ごとに出すようになってる
+#転置をつかって行列を入れ替えて地域・性別ごとに出すようにする
+barchart(t(VADeaths))
+barchart(t(VADeaths), stack = F) #積み上げにしない
+
+#ggplot2を使う
+library(reshape2)
+library(ggplot2)
+(x <- melt(VADeaths)) #ggplotで使えるようにデータを整形する
+ggplot(x, aes(Var1, value)) +
+  geom_bar() + facet_wrap(~Var2)
+```
+
+## ヒストグラム
+```{r warning=FALSE}
+head(trees)
+x <- hist(trees$Height) #水準を自動で分けてヒストグラム化
+x #水準区分けなどヒストグラム生成に使ったデータを戻り値として受けるとる
+y <- hist(trees$Height, , breaks = c(60, 70, 80, 90)) #ビンを設定
+
+#デフォルトの区間分けにはスージェスの公式を利用
+#log2 : 底が2の対数、ceilling : 切り上げ
+nclass.Sturges
+nclass.Sturges(trees$Height) #terrs$Heightの区間数
+```
+
+## 箱ひげ図
+* 箱の中央の線 : 中央値
+* 箱 : 第1四分位数 ~ 第3四分位数
+* ひげの上と下 : 四分範囲の1.5倍の値(四分位範囲 : 第3 - 第1)、データが収まる場合は短くなる
+* ひげの外 : 1.5倍以上(はずれ値)
+```{r}
+x <- boxplot(trees$Height)
+
+#データ確認
+# stats(基本等計量) : 最小値 第1四分位数 中央値 第3四分位数 最大値
+# conf(ノッチ) : 95%信頼区間
+#  中央値 ± ((第3 - 第1) * 1.58 / sqrt(データサイズ))
+#   TODO: 1.58が何検定から出てきたか調べる
+x
+
+head(InsectSprays)
+# A,B,FとC,D,Eで信頼区間がかぶってない -> この段階で効果に有意差あることが確認できる
+y <- boxplot(count ~ spray, data = InsectSprays, co = "lightgray")
+y
+
+#lattice
+library(lattice)
+bwplot(count ~ spray, data = InsectSprays)
+
+#ggplot
+library(ggplot2)
+ggplot(InsectSprays, aes(spray, count)) + geom_boxplot()
+```
+
+## 記号設定
+pchの番号と記号 
+pchは0-25までなので26以上は適当に置き換え  
+```{r echo=FALSE}
+library(grid)
+row = 6; col = 5
+grid.rect(gp = gpar(col = "gray"))
+for (i in 1:row) {
+  for (j in 1:col) {
+    x <- unit(j / (col + 1), "npc")
+    y <- unit(i / (row + 1), "npc")
+    pch <- (i - 1) * col + j - 1
+    if (pch > 25) pch <- c("A", "B", ".", "#")[pch -25]
+    grid.points(x + unit(3, "mm"), y, pch = pch)
+    grid.text(pch, x - unit(6, "mm"), y)
+  }
+}
+```
+
+```{r}
+plot(1:10, col = 1:10, pch = 19, cex = 3) #fill
+plot(1:10, col = 1:10, pch = 21, cex = 3) #line only
+```
+
+## 色設定
+1-8まで使える  
+9以上はリサイクル
+```{r}
+#色名で指定
+length(colors())
+head(colors())
+#色指定にはrainbow関数などもあり
+
+plot(1:10, col = colors()[1:10], cex = 3, pch = 19)
+
+#lty
+# 1: solid
+# 2: dash
+# 3: dot
+# 4: dotdash
+# 5: longdash
+# 6: towdash
+plot(1:7, 1:7, type = "n", xlab = "", ylab = "")
+for (i in 1:6) {
+  lines(c(2, 6), #x軸の始点と終点
+        c(i, i), #y軸の始点と終点
+        lty = i, #線の種類
+        lwd = 2) #線の太さ
+}
+```
+
+## 保存
+```{r}
+library(ggplot2)
+#png, pdf, bmp, tiff, jpegなどファイル名に対雄した関数を呼ぶ
+png(file = "iris.png")
+ggplot(iris, aes(Sepal.Width, Sepal.Length)) +
+  geom_point(aes(color = Species))
+dev.off() #書き出し
+```
+
+## 日本語の扱い
+```{r eval=FALSE}
+par(family = "Osaka") #フォントを指定しする
+#par(family = "Japan1") #windows
+```
