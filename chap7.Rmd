@@ -1,0 +1,226 @@
+# chapter7
+## 分散分析(ANOVA)
+因子・要因：目的に変数に影響を与えている変数  
+水準：説明変数の区別  
+
+分散分析 = 「全体平均」 + 「水準ごとの効果」 + 「水準ごとの誤差」  
+水準ごとの効果：水準の平均値 -全体平均  
+水準ごとの誤差：水準内での測定値 - 水準の平均  
+
+```{r}
+PlantGrowth[c(1:3, 11:13, 21:23), ]
+PGaov <- aov(weight ~ group, data = PlantGrowth) # weight ~ group：モデル式
+summary(PGaov)
+```
+
+### 分散分析の手法
+全体平方和を計算(全データの平均からの差の自乗和)
+```{r}
+# 水準ごとにwightの値を取得
+(PG2 <- unstack(PlantGrowth))
+
+#全体の平均を計算
+(PG.M <- mean(PlantGrowth$weight))
+
+#各データの平均からの差
+PG.S <- PG2 - PG.M
+
+#自乗の合計をとって全体平均和を求める
+sum(PG.S ^ 2)
+```
+
+水準間平方和を求める(各水準の平均と全体平均の差の自乗和)
+```{r}
+#水準ごとの平均値を計算
+PG.CM <- colMeans(PG2)
+
+#計算しやすいように各水準のデータサイズと同じ数の行列を作る
+(PG.M2 <- matrix(rep(PG.CM, 10), byrow = T, ncol = 3))
+
+#水準ごとの平均と全体平均差
+(PG.SM <- PG.M2 - PG.M)
+
+#差の自乗和
+sum(PG.SM ^ 2)
+```
+
+水準内平方和(各データと水準の平均の差和)
+```{r}
+#各値と水準での平均の差
+(PG.SM2 <-PG2 - PG.M2)
+
+#差の自乗和
+sum(PG.SM2 ^ 2)
+```
+
+### 分散分析の結果との比較
+          | Df | Sum Sq | Mean Sq | F value | Pr(>F)  
+----------|----|--------|---------|---------|-------
+group     | 2  | 3.766  | 1.8832  | 4.846   | 0.0159 *
+Residuals | 27 | 10.492 | 0.3886  |         |
+
+* Sum Sq
+ * 平方和
+ * group：水準間平方和
+ * Residuals : 水準内平方和
+* Mean Sq
+ * 平均平方和
+ * 各平方和をDfで割ったもの($sum / df$)
+* Df
+ * group：水準数 - 1
+  * 水準間平方和は全体平均を利用してる
+ * Residuals : データ数 - 水準数
+  * 各水準ごとの平均に対する自由度(N - 1) * 水準数
+* F value
+ * $(groupのMean Sq) / (ResidualsのMean Sq)$
+ * この値が1であれば水準間に差がないことを意味する
+ * 大きければ有意差がある
+ * F分布のp値で測定
+ * F分布は連続値
+```{r}
+#F valueと分子分母のDf
+1 - pf(4.846, 2, 27)
+#lower.tailを使った
+pf(4.846, 2, 27, lower.tail = F)
+```
+
+## 多重比較
+分散分析の水準のどのペアに有意差があるか
+```{r}
+# 水準数とペアの組み合わせ数
+choose(3, 2)
+```
+組み合わせ分t検定などを行うのはダメ  
+有意水準5%だとすると20回に1回は偶然でも起こるので  
+検定回数を増やせば第1種の過誤が起こりやすくなる  
+棄却水準を小さくするなどの調整が必要
+
+### Tukeyの多重検定  
+```{r}
+PG.aov <- aov(weight ~ group, data = PlantGrowth)
+PG.Tukey <- TukeyHSD(PG.aov)
+plot(PG.Tukey)
+PG.Tukey
+```
+95%信頼区間に0が含まれるペアは平均値の差が0となる可能性がある  
+0を含まないtrt2-trt1のみが有意
+
+## 交互作用
+2つ異常の因子があるときに組み合わせによる作用があるか
+```{r}
+ToothGrowth
+# with : 第一引数のdfに対して処理を行う
+# interaction.plot : 交互作用をプロット
+with(ToothGrowth, interaction.plot(dose, supp, len))
+```
+OJの方が効果が高いが、投与量が増えると鈍化する
+
+分散分析
+```{r}
+# supp * dose = supp + dose + supp:dose(個々の作用 + 交互作用)
+TG.aov <- aov(len ~ supp * dose, data = ToothGrowth)
+summary(TG.aov)
+```
+supp:doseも有意差があるので交互作用あり  
+
+因子数が増えると交互作用の組み合わせは爆発する  
+有効でない因子もあるのでモデル選択をすべし
+
+## 回帰分析
+目的変数y, 説明変数xに対して、
+$y = ax + b$で表される式のaとbを測定された複数の$\{y, x\}$から推定する  
+ただし、測定結果には誤差を含む
+```{r}
+head(cars)
+#マイル->kmとフィート->mに単位を変換
+cars2 <- data.frame(speed = cars$speed * 1.6, dist = cars$dist * 0.3)
+head(cars2)
+plot(cars2)
+
+#相関係数
+cor(cars2)
+```
+
+共分散  
+正負によって一方が増えると他方がどうなるかを判断する  
+数値の大小は単位によってかわる
+\[
+  S_{XY} = \sum_{i=1}^{N} (X_i - \bar X)(Y_i - \bar Y)
+\]
+
+相関係数  
+-1から1の範囲で関連一方が増えると他方がどうなるかを判断する  
+共分散を平均0, 標準偏差1になるように調整したもの
+\[
+  r = \frac{S_{XY}}{\sqrt{S_{XX} S_{YY}}}
+\]
+
+### 最小自乗法
+回帰直線のyと実測値との差の自乗が最小になるような$\{a, b\}$を選ぶ  
+誤差が正規分布に従っている前提
+
+最小自乗法で$\{a, b\}$の求め方
+\[
+  a = \bar Y - b \bar X \\
+  b = \frac{\sum (X_i - \bar X)(Y_i -\bar Y)}{\sum (X_i - \bar X) ^ 2}
+\]
+
+Rで実行
+```{r}
+cars.lm <- lm(dist ~ speed, data = cars2)
+summary(cars.lm)
+```
+* Residual
+ * 残差の4分位
+  * 実測値と予測値の差(各実測値ごと)
+* Coefficients
+ * Estimate：パラメータ
+ * Error：誤差
+ * t value, Pr(>|t|)：t値、p値(H0:係数が0である)
+* Residual standard error
+ * 残差の分布がモデル式に適合してるか
+  * モデル式が適切であるか
+* Multiple R-squared
+ * 決定係数
+  * 1に近いほどモデルにデータが適合してる
+* Adjusted R-squared
+ * 自由度調整済み決定係数
+  * パラメータの自由度増加によるR-squaredの増加を抑えるために調整したR-squared
+* F-statistic
+ * F検定統計量
+  * 係数がすべて0であるかの検定
+  * 優位さが無ければこんな回帰式に意味が無いよってこと
+  * p値が小さければ棄却できる
+
+### 回帰直線をプロット
+```{r}
+plot(cars2)
+abline(cars.lm)
+
+#animation
+library(animation)
+#slope, Interceptの順でパラメータの値ごとの直線と残差
+example(least.squares)
+```
+
+## 予測
+モデルを利用してxからyの値を予測する
+```{r}
+#予測する値
+(cars.new <- data.frame(speed = c(33, 34)))
+
+#predictで予測
+cars.pred <- predict(cars.lm, #予測に用いるモデル
+                     newdata = cars.new) #予測する値
+cars.pred
+
+#interval = "confidence"で95%信頼区間も取得
+# lwr - uprが95%信頼区間
+cars2.pred <- predict(cars.lm, newdata = cars.new, interval = "confidence")
+cars2.pred
+```
+
+回帰分析や相関係数は関連の強さを表すが、  
+因果関係まではわからない。  
+AとBに相関があったとしても、AでBを説明できるのかその逆か、
+AとC, CとBに相関があるからなのかなどは不明

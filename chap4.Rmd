@@ -1,9 +1,4 @@
 # Chapter4
-```{r eval=FALSE, echo=FALSE, include=FALSE}
-#ワーキングディレクトリ設定
-setwd("r_dataprogramming/")
-```
-
 ## plot関数
 ### グラフの領域について
 基本的には自動でやってくれるが自分で調整も可能
@@ -117,6 +112,7 @@ cars2$dist2 <- cars$dist * 0.3 #距離をft->mに変換
 #cars2 <- transform(cars, speed2 = speed * 1.6, dist2 = dist * 0.3) #trancformでも同じことができる
 
 head(cars2)
+par(family = "Osaka")
 plot(dist2 ~ speed2, #目的変数~説明変数
      data = cars2, 
      main = "速度と停止距離の関係", #上部のメインタイトル
@@ -125,14 +121,15 @@ plot(dist2 ~ speed2, #目的変数~説明変数
      ylab = "距離(m)") #y軸のラベル
 ```
 
-knitrで使えないためeval=FALS
+knitrで使えないためeval=FALSE
 ```{r eval=FALSE}
 identify(cars2[, c("speed2", "dist2")]) #マウス操作でクリックしたデータに番号を表示させる
 text(locator(1), "トヨタ") #クリックしてデータ名をつける(vectorでまとめて指定可能)
 ```
 
-```{r}
+```{r warning=FALSE}
 #irisの品種ごとに色を変えたグラフ
+par(family = "Osaka")
 plot(Petal.Width ~ Petal.Length,
      pch = c(Species),
      col = Species,
@@ -143,7 +140,7 @@ plot(Petal.Width ~ Petal.Length,
      ylab = "花びらの幅(cm)")
 ```
 
-knitrで使えないためeval=FALS
+knitrで使えないためeval=FALSE
 ```{r eval=FALSE}
 #凡例追加
 legend(locator(1), legend = levels(iris$Species), pch = 1:3, text.col = 1:3, cex = 1:8)

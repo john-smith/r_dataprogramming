@@ -2,9 +2,11 @@
 *.md
 *.pdf
 *.png
+*.csv
 .Rproj.user
 .RData
 .Rhistory
 figure
 
 !README.md
+!data/*

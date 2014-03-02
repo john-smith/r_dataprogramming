@@ -1,9 +1,4 @@
 # Chapter2
-```{r eval=FALSE, echo=FALSE, include=FALSE}
-#ワーキングディレクトリ設定
-setwd("r_dataprogramming/")
-```
-
 ## 四則演算
 ```{r}
 1 + 1

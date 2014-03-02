@@ -1,0 +1,431 @@
+# chapter8
+## 重回帰分析
+多変量解析：説明変数が二つ以上ある場合
+```{r}
+head(airquality)
+# 説明変数を「+」でつなげて重回帰する
+Ozone.lm <- lm(Ozone ~ Solar.R + Wind + Temp + Month + Day, data = airquality)
+summary(Ozone.lm)
+```
+DayのPr(H0:係数がゼロである)に有意差がないので
+\[
+  Y = -64.11632 + 0.05027 Solar.R + -3.31844 Wind + 1.89579 Temp + -3.03996 Month
+\]
+が回帰式となる
+
+説明変数を選ぶ際の注意点
+* 関係ないものまで入れない
+* 相関がある2つの説明変数を入れない
+
+説明変数が増えるほど学習データに対する適合度は高くなる
+```{r}
+cars2 <- data.frame(speed = cars$speed * 1.6, dist = cars$dist * 0.3)
+# 自乗した値を使って、速度と相関のあるデータを追加
+cars2$speed2 <- cars2$speed ^ 2
+head(cars2)
+#speedとspeed2は相関が強い
+cor(cars2)
+
+#説明変数に相関のあるspeed2を入れた方がR^2が高くなる
+#ただしいずれの説明変数にも有意差がないため、モデルとして適切ではない
+#必ず相関をチェックすること
+summary(lm(dist ~ speed, data = cars2))
+summary(lm(dist ~ speed + speed2, data = cars2))
+```
+
+## AIC
+赤池情報量基準  
+説明変数を増やすほど値が高くなるため、  
+適合度が近ければ単純なモデルほどよいと判断される
+
+モデル選択の際は、  
+全部入りから説明変数を減らしていくパターンと、  
+何も無い状態から増やしていくパターン、  
+折半パターンがある
+
+```{r}
+#Ozoneの説明変数からDayを外したのが適切だったかを判定
+#指定されたパターンから特定の説明変数を減らしたときの
+#AICの変化を取得し、最も低いものを利用してさらに減らしたパターンでAICを出す
+#<none>がもっとも低くなるまで繰り返す
+Ozone.step1 <- step(Ozone.lm)
+
+#stepAICを使ったパターン
+
+#説明変数がsuppだけのパターンから始める
+library(MASS)
+TG.aov2 <- aov(len ~ supp, data = ToothGrowth)
+summary(TG.aov2)
+#scopeで指定した範囲でモデル変化させる
+#指定されたパターンから特定の説明変数を減らした(増やした)ときの
+#AICの変化を取得し、最も低いものを利用してさらに増減させたパターンでAICを出す
+#<none>がもっとも低くなるまで繰り返す
+#directionで forward, backward, bothをしていすることで、
+#増やしていくか減らしていくかを選択できる(defaultはboth)
+TG.step <- stepAIC(TG.aov2, scope = list(upper = ~ supp * dose, lower = ~1))
+```
+
+## 主成分分析
+観測されている変数から特徴抽出してまとめあげる  
+抽出結果となる目的変数は観測されていない
+
+多数の説明変数を次元圧縮して少ない数にまとめあげる手法
+
+例：  
+各科目の試験結果から文系、理系要素でまとめる
+
+左右が全体的な成績の傾向  
+上下が理系、文系の成績となっている
+
+特定人物抜き出しでは、  
+A, B, D, Gが文系に優れており、I, Kは理系が優れている。  
+Iは文系点数が悪いため、極端に上にいる
+```{r warning=FALSE}
+myData <- read.csv("data/chap08a.csv")
+head(myData)
+#1列目の名前は計算対象じゃないので除く
+#scale = TRUEで標準化
+data.prn <- prcomp(myData[, -1], scale = T)
+par(family = "Osaka")
+biplot(data.prn, xlabs = myData[, 1])
+
+#特定の人物だけを抜き出す
+myData[myData[, 1] %in% c("A", "B", "D", "G", "I", "K"), ]
+```
+
+### 主成分分析の軸について
+次元圧縮で統合した人工的な数値
+
+4つのデータに対する次元圧縮の場合
+\[
+  z_1 = a_{11} X_1 + a_{12} X_2 + a_{13} X_3 + a_{14} X_4 \\
+  z_2 = a_{21} X_1 + a_{22} X_2 + a_{23} X_3 + a_{24} X_4 \\
+  z_3 = a_{31} X_1 + a_{32} X_2 + a_{33} X_3 + a_{34} X_4 \\
+  z_4 = a_{41} X_1 + a_{42} X_2 + a_{43} X_3 + a_{44} X_4
+\]
+n個のデータ
+\[
+  {\bf z} = {\rm A} {\bf x}
+\]
+\[
+  {\bf x} = \{x_1, x_2, \ldots , x_n\} ^ t \\
+  {\bf z} = \{z_1, z_2, \ldots , z_n\} ^ t \\
+  {\rm A} = \left(
+    \begin{array}{cccc}
+      a_{11} & a_{12} & \ldots & a_{1n} \\
+      a_{21} & a_{22} & \ldots & a_{2n} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      a_{n1} & a_{n2} & \ldots & a_{nn}
+    \end{array}
+  \right)
+\]
+主成分：各$z_i$  
+i番目：第i主成分  
+
+寄与率：第i主成分が元のデータを反映してる割合。iが小さいものほど寄与率が高い
+
+主成分は通常、2つか3つくらいまでしか使わない  
+合成成分を2つにすれば散布図がかける  
+
+合成成分は元データの分散を分解して作られている  
+ばらつき具合が元データの情報を表現
+
+合成成分の分散：$S_z^2$, 元データの分散共分散行列：$S_x^2$  
+の係数$a$による対応  
+変数が2つの場合
+\[
+  z_i = a_{i1} X_1 + a_{i2} X_2
+\]
+において$S_z^22$を最大化(元データの情報をできるだけ多く取り込む)と
+\[
+  S_z^2 = a_1^2 S_{X_1}^2 + a_1 a_2 S_{X_1,X_2} + a_2^2 S_{x_2}^2
+\]
+$S_{X_1}^2$, $S+{X_2}^2$：元の変数の分散  
+$S_{X_1, X_2}^2：元の行列の共分散  
+$z$の分散は制約を課さないと無限に大きくなるので$\sum_{j} a^2 = 1$とすると
+\[
+  S_X^2 {\bf a} = \lambda {\bf a}
+\]
+$S_X^2$：元データの共分散行列  
+$\lambda$：固有値  
+で${\bf a}$が固有ベクトルとなる
+
+実際にはこれを標準化することで最大値、最小値などをそろえて、平均0, 標準偏差1にすることで  
+変数間の共分散は相関係数に等しくなる(prcompのscaleがやってること)
+
+固有値問題をRで解く
+```{r}
+#相関の行列
+(data.cor <- cor(myData[, -1]))
+#行列の固有値、固有ベクトルを求める
+#valuesが固有値、vectorsが固有ベクトル
+(data.eig <- eigen(data.cor))
+
+#prcompの結果から固有値、固有ベクトルを抽出
+data.prn
+#sdevが標準偏差なので2乗すると固有値と一致する
+#ただし、主成分分析では相対的な位置が求まるので符号が異なる場合がある
+data.prn$sdev ^ 2
+
+#summaryを使って合成変数がどれくらい元データを再現しているか(寄与率)を見る
+summary(data.prn)
+
+#主成分
+data.prn$x
+myData[, -1]
+#間違ってるかも
+data.frame(name = myData[, 1], 
+           pca1 = rowSums(data.prn$x[, 1] * myData[, -1]),
+           pca2 = rowSums(data.prn$x[, 2] * myData[, -1]))
+```
+
+プロットについて  
+
+個体の主成分得点  
+biplotでは主成分得点と主成分負荷量を利用している
+```{r}
+#主成分得点を求める
+#主成分の標準偏差で調整する
+#biplotの下がPC1, 左がPC2に対応
+(prn.x <- t(data.prn$x))
+(prn.nrow = nrow(data.prn$x))
+(prn.score <- prn.x / (data.prn$sdev * sqrt(prn.nrow)))
+t(prn.score)
+```
+
+主成分負荷量  
+それぞれの科目の影響力
+```{r}
+#主成分負荷量を求める
+#調整前の負荷量がrotationに入ってる
+#第一、第二主成分のみを使う
+#biplotの上がPC2, 右がPC2
+(prn.rotation <- t(data.prn$rotation[, 1:2]))
+(prn.fuka <- (prn.rotation * (data.prn$sdev * sqrt(nrow(data.prn$x)))))
+t(prn.fuka)
+```
+
+座標のメモリはprcompでは無くbiplotが描画の際に計算している
+```{r}
+#実装を確認
+getS3method("biplot", "prcomp")
+```
+
+### 因子分析
+### 主成分分析との違い
+* 主成分分析はデータを要約する合成成分を発見する
+* 因子分析はデータもとから存在しているに影響を与える因子を推定する
+  存在する共通因子の仮説をたて、因子の効果を測る
+
+理系文系という因子があった場合の  
+Aの5教科の点数における国語のが各因子に与える影響
+\[
+  Aの国語の点数 = a_{国, 1} f_{A, 1} + a_{国, 2} f_{A, 2} + \epsilon
+\]
+$f_{A, n}$：各因子ごとのAの能力(**因子得点**)  
+$a_{国, n}$：国語が各因子に与える影響(**因子負荷用**)  
+$\epsilon$：その日の体調など偶発的なもの
+
+B, Cと同様に解析可能(人ごとに異なる部分は因子得点と偶発性)
+
+jさんのi番目の科目(因子数k)
+\[
+  X_{i, j} = a_{i, 1} f_{j, 1} + a_{i, 2} f_{j, 2}+ \ldots + a_{i, k} f_{j, k} + \epsilon \\
+  = \sum_{k = 1}^{N} (a_{i, k} f_{j, k}) + \epsilon
+\]
+\[
+  {\rm X} = {\rm F} {\rm A} + {\rm \epsilon}
+\]
+\[
+  {\rm X} = \left(
+    \begin{array}{cccc}
+      x_{11} & x_{12} & \ldots & x_{1i} \\
+      x_{21} & x_{22} & \ldots & x_{2i} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      x_{j1} & x_{j2} & \ldots & a_{ji}
+    \end{array}
+  \right) \\
+  {\rm F} = \left(
+    \begin{array}{cccc}
+      f_{11} & f_{12} & \ldots & x_{1k} \\
+      f_{21} & f_{22} & \ldots & f_{2k} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      f_{j1} & f_{j2} & \ldots & f_{jk}
+    \end{array}
+  \right) \\
+  {\rm A} = \left(
+    \begin{array}{cccc}
+      a_{11} & a_{12} & \ldots & a_{1i} \\
+      a_{21} & a_{22} & \ldots & a_{2i} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      a_{k1} & a_{k2} & \ldots & a_{ki}
+    \end{array}
+  \right) \\
+  {\rm \epsilon} = \left(
+    \begin{array}{cccc}
+      \epsilon _{11} & \epsilon _{12} & \ldots & \epsilon _{1i} \\
+      \epsilon _{21} & \epsilon _{22} & \ldots & \epsilon _{2i} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      \epsilon _{j1} & \epsilon _{j2} & \ldots & \epsilon _{ji}
+    \end{array}
+  \right)
+\]
+
+因子負荷量aや因子得点fの計算には行列の固有値分解(あるいは特異値分解)我必要
+```{r warning=FALSE}
+myData <- read.csv("data//chap08b.csv")
+head(myData)
+
+#因子分析お行う
+myFac <- factanal(myData[, -1], 
+                  factors = 2, #因子数
+                  #因子得点をもとる手法。デフォルトではnoneなので求めない
+                  #省略してregでも可
+                  scores = "regression", 
+                  rotation = "none") #回転の有無
+
+# Uniqunesses : 独自性(因子によって説明されていない割合)。1-独自性=共通性
+# データ全体の情報量は元データの変数の数
+#LoadingsのFactor1は大きな差は無いがFactor2はプラスマイナスに分かれてる
+# =これが文系理系因子っぽい
+myFac
+
+# 1 - 因子負荷量^2 が独自性
+1 - sum(myFac$loadings[1, ] ^ 2)
+#applyと無名関数を使って全科目を計算する
+apply(myFac$loadings, 1, function(x) {1 - sum(x^2)})
+
+#個人ごとの因子得点
+myFac$scores
+
+par(family = "Osaka")
+#biplotで表示
+#横軸がFactor1(総合点), 縦軸がFactor2(文系理系)
+#右と上が負荷量(赤矢印に対応)
+biplot(myFac$scores, myFac$loadings, xlabs = myData[, 1])
+```
+
+### 回転
+因子の効果を強調、解釈しやすくするために行う  
+psychパッケージを導入すれば他の回転も行える
+```{r warning=FALSE}
+#rotationをバリマック(直行回転)にする
+myFac2 <- factanal(myData[, -1], factors = 2, scores = "regression", rotation = "varimax")
+
+#X11() #グラフィックス用のウインドを新規に開く
+par(family = "Osaka")
+biplot(myFac2$scores, myFac2$loadings, xlabs = myData[, 1])
+
+#プロマック(斜交回転)
+myFac3 <- factanal(myData[, -1], factors = 2, scores = "regression", rotation = "promax")
+biplot(myFac3$scores, myFac3$loadings, xlabs = myData[, 1])
+
+```
+
+## 対応分析(コレスポンデンス分析)
+名義尺度に対する次元圧縮  
+頻度で分析を行う
+
+独立性の検定では全体の関連しか調べられない  
+水準同士の関連性を調べる
+
+対応分析では行の水準と列の水準に対応があればそれを強調する
+```{r}
+#3次元の配列
+#性別と髪、目の色が4水準ずつ
+HairEyeColor
+
+library(MASS)
+(x <- HairEyeColor[, , Sex = "Female"])
+#nfは軸の数
+#デフォルトは1
+#xy軸+寄与率で4
+xc <- corresp(x, nf = 4)
+
+#髪：黒フォント
+#目：赤フォント
+#blondの髪とblueの目には対応がある
+biplot(xc)
+
+#寄与率(正準相関係数)
+#合成成分間の相関
+#二乗すると固有値と等しくなる
+xc$cor
+
+#固有値の割合を求める
+xc.eig <- xc$cor ^ 2 #固有値を求める
+xc.eig / sum(xc.eig) #固有値の割合
+round(xc.eig / sum(xc.eig), 2) #小数点以下2桁で丸め
+
+#行の水準、列の水準ごとの合成変数
+#ここから散布図を書くことで可視化できる
+#biplotではまとめて表示してる
+xc
+
+#biplotでの軸の値を求める
+xc$rscore[, 1:2] %*% diag(xc$cor[1:2]) #x軸
+xc$cscore[, 1:2] %*% diag(xc$cor[1:2]) #y軸
+```
+
+## クラスター分析
+距離の近いもの同士でまとめる  
+階層的手法と非階層的手法がある
+
+階層的手法ではバラバラのものを一つずつ近いものに含めていき、  
+最終的に全体で一つとなる
+
+非階層的手法ではクラスタ数をあらかじめきてめておき、  
+どれがどこに所属するかの試行を繰り返すことで最終的な決定をする
+
+### 距離の計算
+dist関数のmethod引数に指定できる距離計算の方法
+
+ 引数      | 種類               | 計算方式
+-----------|--------------------|------------------------------
+ euclidean | ユークリッド距離   | 差の自乗和の平方根
+ maximum   | 最大距離           | 差の最大値の絶対値
+ manhattan | マンハッタン距離   | 差の絶対値の総和
+ canberra  | キャンベラ距離     | 相対化されたマンハッタン距離
+ binary    | バイナリ距離       | 2進数でのビットの異なる割合 
+ minkwski  | ミンコウスキー距離 | 一般化されたユークリッド距離 
+
+
+hclustのmethodで指定できる手法
+
+引数     | 種類       | 手法
+---------|------------|------------------------
+single   | 最短距離法 | 個体間の最小距離
+complete | 最長距離法 | 個体間の最大距離
+average  | 群平均法   | 個体間の距離の平均
+mcquitty | McQuitty法 | クラスタ間の差の平均
+median   | 中央値法   | 重心の重み距離
+centroid | 重心法     | クラスター間の重心
+ward     | ウォード法 | クラスタの分散比を最大化
+
+
+ 
+### 文章作者でクラスタリング
+```{r}
+library(RMeCab)
+#バイグラムを取得
+res <- docNgram("data/writers", type = 0)
+head(res); tail(res)
+
+#作品ごとの距離
+#値が小さいほどにてる
+(res.dist <- dist(t(res)))
+
+#分類精度が比較的よいword法を使う
+(res.hc <- hclust(res.dist, "ward"))
+#デンドログラムを描画
+#縦軸はコーフェン距離。hclustdで指定したメソッドで実行される
+plot(res.hc)
+
+#コーフェン距離の計算
+cophenetic(res.hc)
+```
+
+クラスタ分析は手法を変えると結果が大きく変わることがある  
+客観的分析手法として扱うよりもデータの性質検討のための参考程度にした方がいいかも
+
+全体を目視確認できない大規模データの時に全体の傾向を確認するなど

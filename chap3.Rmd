@@ -1,9 +1,4 @@
 # Chapter3
-```{r eval=FALSE, echo=FALSE, include=FALSE}
-#ワーキングディレクトリ設定
-setwd("r_dataprogramming/")
-```
-
 ## if
 ```{r}
 x <- 8
